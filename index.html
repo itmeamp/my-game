@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมส์กบเก็บเหรียญ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-header {
+            margin-bottom: 20px;
+        }
+
+        .game-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .game-area {
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto 20px;
+        }
+
+        .player {
+            width: 40px;
+            height: 40px;
+            background: #4CAF50;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 20px;
+            left: 180px;
+            transition: left 0.1s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .coin {
+            width: 20px;
+            height: 20px;
+            background: #FFD700;
+            border-radius: 50%;
+            position: absolute;
+            animation: fall 3s linear infinite;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes fall {
+            from { top: -20px; }
+            to { top: 420px; }
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            margin: 0 10px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            margin-top: 15px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>🐸 เกมส์กบเก็บเหรียญ</h1>
+            <div class="score-board">
+                <div>คะแนน: <span id="score">0</span></div>
+                <div>ชีวิต: <span id="lives">3</span></div>
+                <div>เวลา: <span id="time">60</span></div>
+            </div>
+        </div>
+
+        <div class="game-area" id="gameArea">
+            <div class="player" id="player"></div>
+            <div class="game-over" id="gameOver">
+                <h2>เกมส์จบแล้ว!</h2>
+                <p>คะแนนสุดท้าย: <span id="finalScore">0</span></p>
+                <button class="restart-btn" onclick="restartGame()">เล่นใหม่</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" onclick="moveLeft()">← ซ้าย</button>
+            <button class="control-btn" onclick="startGame()" id="startBtn">เริ่มเกม</button>
+            <button class="control-btn" onclick="moveRight()">ขวา →</button>
+        </div>
+
+        <div class="instructions">
+            <p>ใช้ปุ่มซ้าย-ขวา หรือ กด A-D เพื่อเคลื่อนที่</p>
+            <p>เก็บเหรียญให้ได้มากที่สุดก่อนหมดเวลา!</p>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            score: 0,
+            lives: 3,
+            time: 60,
+            playerPosition: 180,
+            gameRunning: false,
+            coins: [],
+            gameInterval: null,
+            timeInterval: null
+        };
+
+        const player = document.getElementById('player');
+        const gameArea = document.getElementById('gameArea');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+        const timeElement = document.getElementById('time');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const startBtn = document.getElementById('startBtn');
+
+        function moveLeft() {
+            if (!gameState.gameRunning) return;
+            if (gameState.playerPosition > 0) {
+                gameState.playerPosition -= 20;
+                player.style.left = gameState.playerPosition + 'px';
+            }
+        }
+
+        function moveRight() {
+            if (!gameState.gameRunning) return;
+            if (gameState.playerPosition < 360) {
+                gameState.playerPosition += 20;
+                player.style.left = gameState.playerPosition + 'px';
+            }
+        }
+
+        function createCoin() {
+            const coin = document.createElement('div');
+            coin.className = 'coin';
+            coin.style.left = Math.random() * 380 + 'px';
+            coin.style.top = '-20px';
+            gameArea.appendChild(coin);
+            gameState.coins.push({
+                element: coin,
+                x: parseInt(coin.style.left),
+                y: -20
+            });
+        }
+
+        function updateCoins() {
+            gameState.coins.forEach((coin, index) => {
+                coin.y += 4;
+                coin.element.style.top = coin.y + 'px';
+
+                // Check collision with player
+                if (coin.y > 360 && coin.y < 400 && 
+                    coin.x > gameState.playerPosition - 20 && 
+                    coin.x < gameState.playerPosition + 40) {
+                    // Coin collected
+                    gameState.score += 10;
+                    scoreElement.textContent = gameState.score;
+                    coin.element.remove();
+                    gameState.coins.splice(index, 1);
+                }
+
+                // Remove coins that fall off screen
+                if (coin.y > 420) {
+                    gameState.lives--;
+                    livesElement.textContent = gameState.lives;
+                    coin.element.remove();
+                    gameState.coins.splice(index, 1);
+                    
+                    if (gameState.lives <= 0) {
+                        endGame();
+                    }
+                }
+            });
+        }
+
+        function startGame() {
+            if (gameState.gameRunning) return;
+            
+            gameState.gameRunning = true;
+            gameState.score = 0;
+            gameState.lives = 3;
+            gameState.time = 60;
+            gameState.playerPosition = 180;
+            gameState.coins = [];
+            
+            scoreElement.textContent = gameState.score;
+            livesElement.textContent = gameState.lives;
+            timeElement.textContent = gameState.time;
+            player.style.left = gameState.playerPosition + 'px';
+            gameOverElement.style.display = 'none';
+            startBtn.textContent = 'กำลังเล่น...';
+            startBtn.disabled = true;
+
+            // Clear existing coins
+            document.querySelectorAll('.coin').forEach(coin => coin.remove());
+
+            // Game loop
+            gameState.gameInterval = setInterval(() => {
+                if (Math.random() < 0.7) {
+                    createCoin();
+                }
+                updateCoins();
+            }, 500);
+
+            // Timer
+            gameState.timeInterval = setInterval(() => {
+                gameState.time--;
+                timeElement.textContent = gameState.time;
+                if (gameState.time <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameState.gameRunning = false;
+            clearInterval(gameState.gameInterval);
+            clearInterval(gameState.timeInterval);
+            
+            finalScoreElement.textContent = gameState.score;
+            gameOverElement.style.display = 'block';
+            startBtn.textContent = 'เริ่มเกม';
+            startBtn.disabled = false;
+        }
+
+        function restartGame() {
+            gameOverElement.style.display = 'none';
+            document.querySelectorAll('.coin').forEach(coin => coin.remove());
+            gameState.coins = [];
+            startGame();
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') {
+                moveLeft();
+            } else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
+                moveRight();
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                if (!gameState.gameRunning) {
+                    startGame();
+                }
+            }
+        });
+
+        // Touch controls for mobile
+        let touchStartX = null;
+        gameArea.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+
+        gameArea.addEventListener('touchend', (e) => {
+            if (touchStartX === null) return;
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchStartX - touchEndX;
+
+            if (Math.abs(diff) > 30) {
+                if (diff > 0) {
+                    moveLeft();
+                } else {
+                    moveRight();
+                }
+            }
+            touchStartX = null;
+        });
+    </script>
+</body>
+</html>
